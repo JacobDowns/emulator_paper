@@ -169,10 +169,8 @@ cython_debug/
 *.pvtu
 *.tif
 *.msh 
-mod/
-warp_experiments/
 *.hydra/
-**runs/
+runs/
 # MLflow
 **mlruns/
 **mlartifacts/
