@@ -1,7 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import firedrake as fd
-from matplotlib.tri import Triangulation
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
