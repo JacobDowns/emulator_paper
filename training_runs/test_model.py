@@ -4,7 +4,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 sys.path.append('./')
 import firedrake as df
 from firedrake.petsc import PETSc
-from speceis_dg.hybrid_new import CoupledModel, UncoupledModel
+from speceis_dg.hybrid import CoupledModel, UncoupledModel
 import numpy as np
 from scipy.special import expit
 
