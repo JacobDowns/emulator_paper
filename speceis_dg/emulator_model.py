@@ -1,16 +1,16 @@
 import os
+import sys
 os.environ['OMP_NUM_THREADS'] = '1'
 import firedrake as fd
 import numpy as np
 from firedrake.petsc import PETSc
 import time
-from hybrid import UncoupledModel
-from grad_solver import GradSolver
-from data_mapper import DataMapper
-from gnn_model.simulator import Simulator
+from speceis_dg.hybrid import UncoupledModel
+from speceis_dg.grad_solver import GradSolver
+from speceis_dg.data_mapper import DataMapper
+from speceis_dg.gnn_model.simulator import Simulator
 import torch 
 from torch_geometric.data import Data
-
 
 class EmulatorModel:
 
@@ -97,12 +97,20 @@ class EmulatorModel:
 
         return x_i
     
-    def step(self, dt):
-        B = self.uncoupled_model.B 
-        H = self.uncoupled_model.H 
-        beta2 = self.uncoupled_model.beta2 
+    def step(self, dt, solver = 'emulator'):
+        
+        
+        if solver == 'emulator':
+            B = self.uncoupled_model.B 
+            H = self.uncoupled_model.H0
+            beta2 = self.uncoupled_model.beta2 
 
-        Ubar = self.get_velocity(B, H, beta2)
-        self.uncoupled_model.Ubar.assign(Ubar)
+            Ubar = self.get_velocity(B, H, beta2)
 
-        self.uncoupled_model.solve_transport(dt)
+            self.uncoupled_model.W.sub(0).dat.data[:] = Ubar
+            self.uncoupled_model.W_i.sub(0).dat.data[:] = Ubar
+            self.uncoupled_model.Ubar0.dat.data[:] = Ubar
+            self.uncoupled_model.solve_transport(dt)
+
+        else:
+            self.uncoupled_model.step(dt)

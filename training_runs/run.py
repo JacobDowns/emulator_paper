@@ -86,7 +86,7 @@ class Run:
                 beta_scale = 1. + (1./4.)*np.cos(t*2.*np.pi / 100.)
                 adot0 = 2.*np.sin(t*2.*np.pi / 1000. ) 
                 model.beta2.interpolate(beta2*df.Constant(beta_scale))
-                eps = 0.5*np.sqrt(model.H0.dat.data)*np.random.randn(len(model.adot.dat.data))
+                eps = 1.*np.sqrt(model.H0.dat.data)*np.random.randn(len(model.adot.dat.data))
                 eps[dist.dat.data < 40.] = 0.
                 model.adot.interpolate(adot + df.Constant(adot0))
                 model.adot.dat.data[:] += eps

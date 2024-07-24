@@ -496,7 +496,7 @@ class UncoupledModel(BaseModel):
 
     def solve_velocity(
             self,
-            picard_tol=1e-6,
+            picard_tol=1e-3,
             max_iter=50,
             momentum=0.0,
             error_on_nonconvergence=False,
