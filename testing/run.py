@@ -12,7 +12,11 @@ from scipy.special import expit
 class Run:
     def __init__(self, name, res=500):
 
+      
+
         results_dir = f'testing/output/{name}_{res}'
+
+        print(results_dir)
 
         if not os.path.exists(results_dir):
             os.makedirs(results_dir)
@@ -50,7 +54,7 @@ class Run:
         S_out = df.Function(model.Q_dg, name='S')
 
         t = 0.
-        t_end = 50
+        t_end = 400
         dt = 0.1
 
         j = 0
@@ -58,15 +62,19 @@ class Run:
 
             beta_scale = 1. + (1./4.)*np.cos(t*2.*np.pi / 100.)
             adot0 = 2.*np.sin(t*2.*np.pi / 1000. ) 
-            model.beta2.interpolate(beta2*df.Constant(beta_scale))
+            model.beta2.interpolate(beta2)
             model.adot.interpolate(adot + df.Constant(adot0))
-            
-            emulator_model.step(dt)
+
+
+           
+        
+            emulator_model.step(dt, solver='emulator')
             t += dt
 
+          
             PETSc.Sys.Print('step', t,dt,df.assemble(model.H0*df.dx))
             
-            n_out = 1
+            n_out = 10
             if j % n_out == 0:
                 out_idx = int(j/n_out)
 
@@ -74,13 +82,12 @@ class Run:
                 S_file.write(S_out, time=t)
                 H_file.write(model.H0,time=t)
                 Ubar_file.write(model.Ubar0, time=t)
-            
                 
-                j += 1
+            j += 1
         
 
-for res in [1000]:
-    run = Run('beaverhead', res)
+
+run = Run('centennial', 500)
 #if __name__=='__main__':
 #    i = int(sys.argv[1])
 #    print(i)

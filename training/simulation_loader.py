@@ -1,11 +1,11 @@
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+import sys
+sys.path.append('./')
 import numpy as np
 import firedrake as fd
-from data_mapper import DataMapper
+from speceis_dg.feature_constructor import FeatureConstructor
 import torch
 from torch_geometric.data import Data
-from grad_solver import GradSolver
 from torch.utils.data import Dataset
 import numpy as np
 from velocity_loss import LossIntegral
@@ -18,18 +18,18 @@ class SimulationLoader:
         self.name = name
         base_dir = f'training_runs/output/{name}/'
         self.h5_input = f'{base_dir}output_{name}.h5'
-        self.num_steps = 200
-        self.skip = 2
+        self.sim_steps = 200
+        self.skip = 1
+        self.N = int(200 / self.skip)
 
         with fd.CheckpointFile(self.h5_input, 'r') as afile:
             self.mesh = afile.load_mesh()
-            self.grad_solver = GradSolver(self.mesh)
-            self.data_mapper = DataMapper(self.mesh)
+            self.feature_constructor = FeatureConstructor(self.mesh, version = 'new')
             self.B = afile.load_function(self.mesh, 'B')
             self.loss_integral = LossIntegral(self.mesh)
 
-            self.coords = self.data_mapper.coords
-            self.edges = self.data_mapper.edges
+            self.coords = self.feature_constructor.data_mapper.coords
+            self.edges = self.feature_constructor.data_mapper.edges
 
             # Input features
             self.Xs = []
@@ -52,42 +52,14 @@ class SimulationLoader:
     
     def load_features_from_h5(self):
 
-        indexes = np.arange(0, self.num_steps, self.skip)
+
 
         # Use every other time step (5 years)
-        for j in range(len(indexes)):
+        for j in range(0, self.N, self.skip):
             print(self.name, j)
-            index = indexes[j]
-            vars = self.get_vars(index)
-    
-            H_avg = self.data_mapper.get_avg(vars['H'])
-            beta2_avg = self.data_mapper.get_avg(vars['beta2'])
-            B_grad = self.grad_solver.solve_grad(vars['B'])
-            S_grad = self.grad_solver.solve_grad(vars['B'] + vars['H'])
-            B_grad = B_grad.dat.data.reshape((-1,3))
-            S_grad = S_grad.dat.data.reshape((-1,3))
+            vars = self.get_vars(j)
 
-            # Geometric variables
-            X_g = np.column_stack([
-                self.data_mapper.edge_lens,
-                self.data_mapper.dx0,
-                self.data_mapper.dy0,
-                self.data_mapper.dx1,
-                self.data_mapper.dy1
-            ])
-
-            # Input variables
-            X_i = np.column_stack([
-                H_avg,
-                B_grad,
-                S_grad,
-                beta2_avg
-            ])
-
-            X = np.column_stack([
-                X_g,
-                X_i
-            ])
+            X = self.feature_constructor.construct_features(vars['B'], vars['H'], vars['beta2'])
 
             # Outputs
             Ubar = vars['Ubar'].dat.data.reshape((-1,3))
@@ -101,10 +73,8 @@ class SimulationLoader:
 
     def load_features_from_arrays(self):
 
-        indexes = np.arange(0, self.num_steps, self.skip)
-
         # Use every other time step (5 years)
-        for j in range(len(indexes)):
+        for j in range(0, self.N, self.skip):
 
             base_dir = f'training/graph_data/{self.name}'
 
@@ -121,12 +91,10 @@ class SimulationLoader:
     def save_feature_arrays(self):
         base_dir = f'training/graph_data/{self.name}'
 
-        indexes = np.arange(0, self.num_steps, self.skip)
-
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
 
-        for j in range(len(indexes)):
+        for j in range(0, self.N, self.skip):
             x = self.Xs[j]
             y = self.Ys[j]
             np.save(f'{base_dir}/X_{j}.npy', x)
@@ -143,14 +111,9 @@ class SimulatorDataset(Dataset):
         # Regions
         self.regions = [
             'beaverhead_500',
-            'beaverhead_750',
-            'beaverhead_1000',
             'cabinet_500',
-            'cabinet_750',
-            'cabinet_1000',
             'mission_500',
-            'mission_750',
-            'mission_1000',
+            'pintlers_500'
         ]
         # Number of regions
         self.num_simulations = len(self.regions)
@@ -183,5 +146,3 @@ class SimulatorDataset(Dataset):
         )
 
         return g, y, sim_loader
-
-

@@ -204,10 +204,10 @@ class BaseModel:
             self, 
             mesh,
             solver_type='direct',
-            vel_scale=100,
-            thk_scale=1e3,
-            len_scale=1e4, 
-            beta_scale=1e3,
+            vel_scale=1.,
+            thk_scale=1.,
+            len_scale=1e3, 
+            beta_scale=1e4,
             time_scale=1, 
             g=9.81, 
             rho_i=917., 
@@ -215,7 +215,7 @@ class BaseModel:
             n=3.0, 
             A=1e-16, 
             eps_reg=1e-6,
-            thklim=1e-3, 
+            thklim=2., 
             theta=1.0, 
             alpha=0,
             flux_type='lax-friedrichs',
@@ -494,6 +494,17 @@ class UncoupledModel(BaseModel):
             solver_parameters=self.solver_params
         )
 
+        ### Loss functions
+
+        self.H_obs = fd.Function(self.Q_dg)
+        self.Ubar_obs = fd.Function(self.Q_mtw)
+        self.Lambda = fd.Function(self.Q_dg)
+        self.Delta = fd.Function(self.Q_dg)
+
+        self.transport_loss = (self.H - self.H_obs)**2*fd.dx
+        self.velociy_loss = fd.dot(self.Ubar_obs - self.Ubar, self.Ubar_obs - self.Ubar)*fd.dx 
+        self.dUbar = fd.TestFunction(self.Q_mtw)
+
     def solve_velocity(
             self,
             picard_tol=1e-3,
@@ -542,6 +553,8 @@ class UncoupledModel(BaseModel):
         self.Ubar0.assign(self.W.sub(0))
         self.Udef0.assign(self.W.sub(1))
 
+
+
         return converged
     
     def solve_transport(self, dt):
@@ -554,3 +567,28 @@ class UncoupledModel(BaseModel):
         converged = self.solve_velocity(**kwargs)
         self.solve_transport(dt)
         return converged
+    
+
+    def eval_transport_loss(self, dt):
+        
+        # Solve for h given Ubar
+        self.dt.assign(dt)
+        self.transport_solver.solve()
+
+        # Solve the adjoint equation
+        A = fd.derivative(self.R_transport, self.H)
+        A = fd.assemble(A)
+        fd.solve(A, self.Lambda, fd.assemble(fd.derivative(-self.transport_loss, self.H)))
+
+        g = fd.derivative(self.R_transport, self.Ubar)
+        quit()
+        # Compute derivative of loss w.r.t. Ubar
+        R_u = fd.assemble(fd.derivative(self.R_transport, self.Ubar, self.dUbar))
+        
+        quit()
+        #self.product1(R_u, self.Lambda, self.du)
+
+        # Eval loss 
+        R = fd.assemble(self.transport_loss)    
+
+        return R, self.du

@@ -35,7 +35,8 @@
 		}
 	},
 
-	"postCreateCommand": "pip install torch torchvision torchaudio torch_geometric pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv rioxarray xarray rasterio pandamesh dem_stitcher tensorboardX -f https://data.pyg.org/whl/torch-2.2.0+cu121.html meshio"
+	"postCreateCommand": "pip install warp-lang torch==2.3.0 torch_geometric pyg-lib torch-scatter torch-sparse torch-cluster torch-spline-conv cupy-cuda12x tensorboardx -f https://data.pyg.org/whl/torch-2.3.0+cpu.html"
+	
 	// "customizations": {},
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.

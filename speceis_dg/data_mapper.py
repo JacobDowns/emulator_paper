@@ -78,6 +78,24 @@ class DataMapper:
         self.dx1 = self.x_dg[self.c1] - self.x_cr
         self.dy1 = self.y_dg[self.c1] - self.y_cr  
 
+        self.vertex_to_cell_map = self.vertex_to_cell_map()
+
+
+    def vertex_to_cell_map(self):
+        
+        vertices_to_cells = []
+        for i in range(len(self.faces)):
+            face = self.faces[i]
+
+            vertices_to_cells.append([face[0], i])
+            vertices_to_cells.append([face[1], i])
+            vertices_to_cells.append([face[2], i])
+
+        return np.array(vertices_to_cells, dtype=np.int64)
+
+
+
+
     def get_avg(self, f):
         vals = fd.assemble(fd.avg(f*self.v_cr)*fd.dS + f*self.v_cr*fd.ds).dat.data
         vals /= self.edge_lens

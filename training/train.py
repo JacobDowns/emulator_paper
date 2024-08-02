@@ -1,4 +1,7 @@
-from model.simulator import Simulator
+import os
+import sys
+sys.path.append('./')
+from speceis_dg.new.simulator import Simulator
 import torch
 from simulation_loader import SimulatorDataset
 from torch.utils.data.dataset import Subset
@@ -18,21 +21,21 @@ epochs = 1001
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #device = torch.device('cpu')
-simulator = Simulator(message_passing_num=12, edge_input_size=13, device=device)
+simulator = Simulator(message_passing_num=10, edge_input_size=13, device=device)
 simulator.load_checkpoint()
 optimizer = torch.optim.Adam(simulator.parameters(), lr=5e-5)
 vel_loss = VelocityLoss().apply
 
 
-out_mod = fd.File('training/monitor/out_mod1.pvd')
-out_obs = fd.File('training/monitor/out_obs1.pvd')
+out_mod = fd.File('training/monitor/out_mod.pvd')
+out_obs = fd.File('training/monitor/out_obs.pvd')
 
 
 def train(model:Simulator, train_data, val_data, optimizer):
 
     k = 0
 
-    for ep in range(235, epochs):
+    for ep in range(1, epochs):
         print('Epoch', ep)
         model.train() 
         train_error = 0.
@@ -45,6 +48,8 @@ def train(model:Simulator, train_data, val_data, optimizer):
             g = g.cuda()
             y = model(g).cpu()
             Ubar_mod = y.flatten()
+            #Ubar_obs = torch.normal(Ubar_obs, std=1e-3)
+
             loss = vel_loss(Ubar_mod, Ubar_obs, sim_loader.loss_integral)
             train_error += loss.item()
 
